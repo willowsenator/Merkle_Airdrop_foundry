@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
+
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -48,7 +49,7 @@ contract MerkleAirdrop is ReentrancyGuard {
         return i_airdropToken;
     }
 
-    function getMerkleRoot() external view returns(bytes32) {
+    function getMerkleRoot() external view returns (bytes32) {
         return i_merkleRoot;
     }
 }
