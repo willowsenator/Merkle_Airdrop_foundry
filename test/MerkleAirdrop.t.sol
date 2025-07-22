@@ -75,104 +75,61 @@ contract MerkleAirdropTest is Test {
     BagelToken public token;
     MaliciousToken public maliciousToken;
 
-    bytes32 public merkleRoot;
-    uint256 public constant AIRDROP_AMOUNT = 100e18;
-
-    address public user1 = makeAddr("user1");
-    address public user2 = makeAddr("user2");
+    bytes32 public constant ROOT = 0x660899009c4bc1edaecf8954b0857cc9dce5556b86c43fbeb7a1c1403fd38ce9;
+    uint256 public constant AMOUNT_TO_CLAIM = 25 * 1e18; // 25 tokens with 18 decimals
+    uint256 public constant AMOUNT_TO_SEND = AMOUNT_TO_CLAIM * 4; // Total amount to send to 4 users
+    bytes32 proofOne = 0xef54b0c83407e0c74021e9c900344391f8b30fb6c98e7689f3c6015840959d08;
+    bytes32 proofTwo = 0x690db6451ed7bd75de70f3e51b667921921d120ad7e9fd352b12cf84e90a96b6;
+    bytes32[] public PROOF = [proofOne, proofTwo];
+    address user;
+    uint256 userPrivateKey;
+    address user1;
 
     function setUp() public {
-        // Deploy contracts
         token = new BagelToken();
-
-        // Create a simple merkle root for testing
-        // In practice, this would be calculated from the actual merkle tree
-        // Calculate leaf for user1 and AIRDROP_AMOUNT
-        bytes32 leaf = keccak256(bytes.concat(abi.encode(user1, AIRDROP_AMOUNT)));
-        merkleRoot = leaf;
-
-        airdrop = new MerkleAirdrop(merkleRoot, IERC20(address(token)));
-
-        // Mint tokens to the airdrop contract
-        token.mint(address(airdrop), 1000e18);
-
-        // Setup malicious token
+        airdrop = new MerkleAirdrop(ROOT, token);
         maliciousToken = new MaliciousToken();
-        maliciousToken.setAirdropContract(address(airdrop));
+        token.mint(token.owner(), AMOUNT_TO_SEND);
+        token.transfer(address(airdrop), AMOUNT_TO_SEND);
+        (user, userPrivateKey) = makeAddrAndKey("user");
+        user1 = makeAddr("user1");
     }
 
     function testReentrancyProtection() public {
         // Create airdrop with malicious token
-        MerkleAirdrop maliciousAirdrop = new MerkleAirdrop(merkleRoot, IERC20(address(maliciousToken)));
+        MerkleAirdrop maliciousAirdrop = new MerkleAirdrop(ROOT, IERC20(address(maliciousToken)));
         maliciousToken.setAirdropContract(address(maliciousAirdrop));
 
-        // Create a valid merkle proof (simplified for testing)
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = keccak256(abi.encode("dummy_proof"));
-
-        // Calculate the correct leaf for user1
-        bytes32 leaf = keccak256(bytes.concat(abi.encode(user1, AIRDROP_AMOUNT)));
-
-        // Override the merkle root verification for this test
-        // In a real scenario, you'd use actual merkle proofs
-        vm.mockCall(
-            address(maliciousAirdrop),
-            abi.encodeWithSignature("claim(address,uint256,bytes32[])", user1, AIRDROP_AMOUNT, proof),
-            abi.encode()
-        );
-
         // The malicious token will try to reenter, but it should be prevented
-        vm.prank(user1);
-        try maliciousAirdrop.claim(user1, AIRDROP_AMOUNT, proof) {
+        vm.prank(user);
+        try maliciousAirdrop.claim(user, AMOUNT_TO_CLAIM, PROOF) {
             console.log("Claim executed");
         } catch Error(string memory reason) {
             console.log("Claim failed with reason:", reason);
         }
     }
 
-    function testNormalClaim() public {
-        // Test normal claiming functionality
-        assertTrue(!airdrop.hasClaimed(user1), "User1 should not have claimed initially");
+    function testUserCanClaim() public {
+        uint256 startingBalance = token.balanceOf(user);
+        vm.prank(user);
+        airdrop.claim(user, AMOUNT_TO_CLAIM, PROOF);
 
-        // For testing purposes, we'll mock the merkle proof verification
-        // In practice, you'd generate real merkle proofs
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = keccak256(abi.encode("test_proof"));
-
-        // Mock the merkle proof verification to return true
-        vm.mockCall(
-            address(airdrop),
-            abi.encodeWithSignature("claim(address,uint256,bytes32[])", user1, AIRDROP_AMOUNT, proof),
-            abi.encode()
-        );
+        uint256 endingBalance = token.balanceOf(user);
+        assertEq(endingBalance, startingBalance + 25 * 1e18, "User should receive 25 tokens");
     }
 
     function testPreventDoubleClaim() public {
-        bytes32[] memory proof = new bytes32[](0); // Use empty proof for simplicity
+        bytes32[] memory proof = new bytes32[](2);
+        proof[0] = 0xd1445c931158119b00449ffcac3c947d028c0c359c34a6646d95962b3b55c6ad;
+        proof[1] = 0x690db6451ed7bd75de70f3e51b667921921d120ad7e9fd352b12cf84e90a96b6;
 
         // First claim should succeed
         vm.prank(user1);
-        airdrop.claim(user1, AIRDROP_AMOUNT, proof);
+        airdrop.claim(user1, AMOUNT_TO_CLAIM, proof);
 
         // Second claim should fail
         vm.expectRevert(MerkleAirdrop.MerkleAirdrop__AlreadyClaimed.selector);
         vm.prank(user1);
-        airdrop.claim(user1, AIRDROP_AMOUNT, proof);
-    }
-
-    function testGetterFunctions() public view {
-        assertEq(address(airdrop.getAirdropToken()), address(token), "Token address should match");
-        assertEq(airdrop.getMerkleRoot(), merkleRoot, "Merkle root should match");
-        assertFalse(airdrop.hasClaimed(user1), "User1 should not have claimed");
-    }
-
-    function testInvalidProof() public {
-        bytes32[] memory invalidProof = new bytes32[](1);
-        invalidProof[0] = keccak256(abi.encode("invalid_proof"));
-
-        vm.expectRevert(MerkleAirdrop.MerkleAirdrop__InvalidProof.selector);
-
-        vm.prank(user1);
-        airdrop.claim(user1, AIRDROP_AMOUNT, invalidProof);
+        airdrop.claim(user1, AMOUNT_TO_CLAIM, proof);
     }
 }

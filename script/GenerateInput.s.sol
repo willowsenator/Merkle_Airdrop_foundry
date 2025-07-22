@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
-contract GenerateInput is Script {
+contract GenerateInputScript is Script {
     uint256 amount = 25 * 1e18; // 25 tokens with 18 decimals
     string[] types = new string[](2);
     uint256 count;
@@ -16,9 +16,9 @@ contract GenerateInput is Script {
         types[0] = "address";
         types[1] = "uint";
 
-        whitelist[0] = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
-        whitelist[1] = "0x7c6b4bbe207d642d98d5c537142d85209e585087";
-        whitelist[2] = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
+        whitelist[0] = "0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D";
+        whitelist[1] = "0x29E3b139f4393aDda86303fcdAa35F60Bb7092bF";
+        whitelist[2] = "0x537C8f3d3E18dF5517a58B3fB9D9143697996802";
         whitelist[3] = "0x0000000000000000000000000000000000001337";
 
         count = whitelist.length;
@@ -38,7 +38,7 @@ contract GenerateInput is Script {
 
         for (uint256 i = 0; i < count; i++) {
             json =
-                string.concat(json, '"', vm.toString(i), '":{"0":"', whitelist[i], '","1":"', vm.toString(amount), '"}');
+                string.concat(json, '"', vm.toString(i), '":{"0":"', whitelist[i], '","1":', vm.toString(amount), "}");
             if (i < count - 1) {
                 json = string.concat(json, ",");
             }

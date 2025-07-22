@@ -15,7 +15,7 @@ import {Merkle} from "murky/src/Merkle.sol";
 
 /// @notice Merkle proof generator script
 /// @author kootsZhin
-contract MerkleScript is Script, ScriptHelper {
+contract MakeMerkleScript is Script, ScriptHelper {
     using stdJson for string;
 
     Merkle private m = new Merkle();
