@@ -4,17 +4,26 @@ pragma solidity ^0.8.24;
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {console} from "forge-std/console.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract MerkleAirdrop is ReentrancyGuard {
+contract MerkleAirdrop is ReentrancyGuard, EIP712("MerkleAirdrop", "1") {
     using SafeERC20 for IERC20;
 
     error MerkleAirdrop__InvalidProof();
     error MerkleAirdrop__AlreadyClaimed();
+    error MerkleAirdrop__InvalidSignature();
 
     bytes32 private immutable i_merkleRoot;
     IERC20 private immutable i_airdropToken;
     mapping(address => bool) private s_hasClaimed;
+
+    bytes32 public constant MESSAGE_TYPEHASH = keccak256("AirdropClaim(address account,uint256 amount)");
+
+    struct AirdropClaim {
+        address account;
+        uint256 amount;
+    }
 
     event Claim(address indexed account, uint256 amount);
 
@@ -26,9 +35,17 @@ contract MerkleAirdrop is ReentrancyGuard {
         i_airdropToken = airdropToken;
     }
 
-    function claim(address account, uint256 amount, bytes32[] calldata merkleProof) external nonReentrant {
+    function claim(address account, uint256 amount, bytes32[] calldata merkleProof, uint8 v, bytes32 r, bytes32 s)
+        external
+        nonReentrant
+    {
         if (s_hasClaimed[account]) {
             revert MerkleAirdrop__AlreadyClaimed();
+        }
+
+        // Verify the signature
+        if (!_isValidSignature(account, getMessage(account, amount), v, r, s)) {
+            revert MerkleAirdrop__InvalidSignature();
         }
 
         // Calculate the leaf node from the account and amount
@@ -37,8 +54,6 @@ contract MerkleAirdrop is ReentrancyGuard {
         data[0] = bytes32(uint256(uint160(account))); // Convert address to bytes32
         data[1] = bytes32(amount); // Convert amount to bytes32
         bytes32 leaf = keccak256(bytes.concat(keccak256(ltrim64(abi.encode(data)))));
-        console.logBytes32(leaf);
-        console.log("Expected leaf: 0xef54b0c83407e0c74021e9c900344391f8b30fb6c98e7689f3c6015840959d08");
 
         if (!MerkleProof.verify(merkleProof, i_merkleRoot, leaf)) {
             revert MerkleAirdrop__InvalidProof();
@@ -58,6 +73,20 @@ contract MerkleAirdrop is ReentrancyGuard {
 
     function getMerkleRoot() external view returns (bytes32) {
         return i_merkleRoot;
+    }
+
+    function getMessage(address account, uint256 amount) public view returns (bytes32) {
+        return
+            _hashTypedDataV4(keccak256(abi.encode(MESSAGE_TYPEHASH, AirdropClaim({account: account, amount: amount}))));
+    }
+
+    function _isValidSignature(address account, bytes32 digest, uint8 v, bytes32 r, bytes32 s)
+        internal
+        pure
+        returns (bool)
+    {
+        (address signer,,) = ECDSA.tryRecover(digest, v, r, s);
+        return signer == account;
     }
 
     /// @dev Returns a slice of `_bytes` with the first 64 bytes removed.

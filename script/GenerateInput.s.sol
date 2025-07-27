@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
-contract GenerateInputScript is Script {
+contract GenerateInput is Script {
     uint256 amount = 25 * 1e18; // 25 tokens with 18 decimals
     string[] types = new string[](2);
     uint256 count;
