@@ -84,9 +84,11 @@ contract MerkleAirdropTest is ZkSyncChainChecker, Test {
     bytes32 proofOne = 0xef54b0c83407e0c74021e9c900344391f8b30fb6c98e7689f3c6015840959d08;
     bytes32 proofTwo = 0x690db6451ed7bd75de70f3e51b667921921d120ad7e9fd352b12cf84e90a96b6;
     bytes32[] public PROOF = [proofOne, proofTwo];
+    address public gasPayer;
     address user;
     uint256 userPrivateKey;
     address user1;
+    uint256 user1PrivateKey;
 
     function setUp() public {
         if (!isZkSyncChain()) {
@@ -103,7 +105,8 @@ contract MerkleAirdropTest is ZkSyncChainChecker, Test {
         // Initialize malicious token and user addresses
         maliciousToken = new MaliciousToken();
         (user, userPrivateKey) = makeAddrAndKey("user");
-        user1 = makeAddr("user1");
+        (user1, user1PrivateKey) = makeAddrAndKey("user1");
+        gasPayer = makeAddr("gasPayer");
     }
 
     function testReentrancyProtection() public {
@@ -112,12 +115,16 @@ contract MerkleAirdropTest is ZkSyncChainChecker, Test {
         maliciousToken.setAirdropContract(address(maliciousAirdrop));
         maliciousToken.setProof(PROOF);
 
+        // Sign the message hash
+        bytes32 digest = maliciousAirdrop.getMessageHash(user, AMOUNT_TO_CLAIM);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+
         // Record initial state
         uint256 initialBalance = maliciousToken.balanceOf(user);
 
         // The malicious token will try to reenter, but it should be prevented
-        vm.prank(user);
-        maliciousAirdrop.claim(user, AMOUNT_TO_CLAIM, PROOF, 0, bytes32(0), bytes32(0));
+        vm.prank(gasPayer);
+        maliciousAirdrop.claim(user, AMOUNT_TO_CLAIM, PROOF, v, r, s);
 
         uint256 finalBalance = maliciousToken.balanceOf(user);
 
@@ -130,14 +137,19 @@ contract MerkleAirdropTest is ZkSyncChainChecker, Test {
 
         // Try to claim again - should fail with AlreadyClaimed error
         vm.expectRevert(MerkleAirdrop.MerkleAirdrop__AlreadyClaimed.selector);
-        vm.prank(user);
-        maliciousAirdrop.claim(user, AMOUNT_TO_CLAIM, PROOF, 0, bytes32(0), bytes32(0));
+        vm.prank(gasPayer);
+        maliciousAirdrop.claim(user, AMOUNT_TO_CLAIM, PROOF, v, r, s);
     }
 
     function testUserCanClaim() public {
         uint256 startingBalance = token.balanceOf(user);
-        vm.prank(user);
-        airdrop.claim(user, AMOUNT_TO_CLAIM, PROOF, 0, bytes32(0), bytes32(0));
+        bytes32 digest = airdrop.getMessageHash(user, AMOUNT_TO_CLAIM);
+
+        // Sign the message hash
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+
+        vm.prank(gasPayer);
+        airdrop.claim(user, AMOUNT_TO_CLAIM, PROOF, v, r, s);
 
         uint256 endingBalance = token.balanceOf(user);
         assertEq(endingBalance, startingBalance + 25 * 1e18, "User should receive 25 tokens");
@@ -148,13 +160,17 @@ contract MerkleAirdropTest is ZkSyncChainChecker, Test {
         proof[0] = 0xd1445c931158119b00449ffcac3c947d028c0c359c34a6646d95962b3b55c6ad;
         proof[1] = 0x690db6451ed7bd75de70f3e51b667921921d120ad7e9fd352b12cf84e90a96b6;
 
+        // sign the message hash
+        bytes32 digest = airdrop.getMessageHash(user1, AMOUNT_TO_CLAIM);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(user1PrivateKey, digest);
+
         // First claim should succeed
-        vm.prank(user1);
-        airdrop.claim(user1, AMOUNT_TO_CLAIM, proof, 0, bytes32(0), bytes32(0));
+        vm.prank(gasPayer);
+        airdrop.claim(user1, AMOUNT_TO_CLAIM, proof, v, r, s);
 
         // Second claim should fail
         vm.expectRevert(MerkleAirdrop.MerkleAirdrop__AlreadyClaimed.selector);
-        vm.prank(user1);
-        airdrop.claim(user1, AMOUNT_TO_CLAIM, proof, 0, bytes32(0), bytes32(0));
+        vm.prank(gasPayer);
+        airdrop.claim(user1, AMOUNT_TO_CLAIM, proof, v, r, s);
     }
 }
