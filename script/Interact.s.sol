@@ -5,16 +5,16 @@ import {Script} from "forge-std/Script.sol";
 import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 import {MerkleAirdrop} from "../src/MerkleAirdrop.sol";
 
-
 contract ClaimAirdrop is Script {
-     address CLAIMING_ADDRESS = 0x29E3b139f4393aDda86303fcdAa35F60Bb7092bF; 
-        uint256 CLAIMING_AMOUNT = 25e18; // 25 tokens
-        bytes32 PROOF_ONE = 0xd1445c931158119b00449ffcac3c947d028c0c359c34a6646d95962b3b55c6ad;
-        bytes32 PROOF_TWO = 0x690db6451ed7bd75de70f3e51b667921921d120ad7e9fd352b12cf84e90a96b6;
-        bytes32[] proof = [PROOF_ONE, PROOF_TWO];
-        bytes private SIGNATURE = hex"542edfc1fd4c925eb69df98e4149b00452ebe6b82ec737edfd8753bae65791166460d4486da190075cfb2a647cf7ff599264bcfc91cccfe587fb291296748c941b";
+    address CLAIMING_ADDRESS = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    uint256 CLAIMING_AMOUNT = 25e18; // 25 tokens
+    bytes32 PROOF_ONE = 0x8ebcc963f0588d1ded1ebd0d349946755f27e95d1917f9427a207d8935e04d4b;
+    bytes32 PROOF_TWO = 0x67ac38a0ee927516de8ed257ce3ecc9b1c02daf12cde2da8ffaf12582431f3d7;
+    bytes32[] proof = [PROOF_ONE, PROOF_TWO];
+    bytes private SIGNATURE =
+        hex"6c576a2bcd6ec720be706c4a336ac69c3cfee293689bca8205e9ff240e2d69c50084e9509ae54535c86062b05a91e5da8bb22d517e7f72ba879823fd3f56c9361b";
 
-        error __ClaimAirdrop__InvalidSignatureLength();
+    error __ClaimAirdrop__InvalidSignatureLength();
 
     function claimAirdrop(address airdrop) public {
         (uint8 v, bytes32 r, bytes32 s) = splitSignature(SIGNATURE);
@@ -33,7 +33,7 @@ contract ClaimAirdrop is Script {
             v := byte(0, mload(add(sig, 96)))
         }
     }
-    
+
     function run() external {
         address mostRecentDeployed = DevOpsTools.get_most_recent_deployment("MerkleAirdrop", block.chainid);
         claimAirdrop(mostRecentDeployed);
