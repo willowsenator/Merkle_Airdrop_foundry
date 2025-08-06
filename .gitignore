@@ -4,6 +4,11 @@ out/
 zkout/
 anvil-zksync.log
 
+
+# zkSync specific
+*.zksolc-*
+.zksolc-*
+
 # Ignores development broadcast logs
 /broadcast/*
 /broadcast/*/31337/
