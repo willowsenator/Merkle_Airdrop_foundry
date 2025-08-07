@@ -12,7 +12,7 @@ contract ClaimAirdrop is Script {
     bytes32 PROOF_TWO = 0x67ac38a0ee927516de8ed257ce3ecc9b1c02daf12cde2da8ffaf12582431f3d7;
     bytes32[] proof = [PROOF_ONE, PROOF_TWO];
     bytes private SIGNATURE =
-        hex"6c576a2bcd6ec720be706c4a336ac69c3cfee293689bca8205e9ff240e2d69c50084e9509ae54535c86062b05a91e5da8bb22d517e7f72ba879823fd3f56c9361b";
+        hex"c6f929f7cbb24b33d6abd09b76bac1b21d7449ab4238e57a5475adbd2512a7ac5f040a728989df9466b6082ae0ccdeea6a411a42b1cc8e228639159b093c63801b";
 
     error __ClaimAirdrop__InvalidSignatureLength();
 

@@ -12,6 +12,7 @@ contract DeployMerkleAirdrop is Script {
     // for anvil testing
     //bytes32 private s_merkleRoot = 0x7e2cbef7bfe87caa8da6075469a352eb93e305f541cae0a0db98899bb9013a06;
     uint256 private s_amountToTransfer = 4 * 25 * 1e18; // 25 tokens for each of the 4 addresses
+    //uint256 private s_amountToTransfer = 25 * 1e18; // 25 tokens for a single address
 
     function deployMerkleAirdrop() public returns (MerkleAirdrop, BagelToken) {
         vm.startBroadcast();
