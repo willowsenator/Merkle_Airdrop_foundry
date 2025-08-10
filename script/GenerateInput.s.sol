@@ -19,7 +19,7 @@ contract GenerateInput is Script {
         whitelist[0] = "0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D";
         whitelist[1] = "0x29E3b139f4393aDda86303fcdAa35F60Bb7092bF";
         whitelist[2] = "0x537C8f3d3E18dF5517a58B3fB9D9143697996802";
-        whitelist[3] = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+        whitelist[3] = "0xFb1952248c32CD1b8f6E7814D35cBfd872E02a36";
 
         count = whitelist.length;
 
