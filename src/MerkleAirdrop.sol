@@ -59,6 +59,9 @@ contract MerkleAirdrop is ReentrancyGuard, EIP712("MerkleAirdrop", "1") {
             revert MerkleAirdrop__InvalidProof();
         }
         s_hasClaimed[account] = true;
+        // The only calls before this are internal library code (ECDSA, MerkleProof); the token transfer
+        // comes after the emit and claim() is nonReentrant, so nothing can reorder this log.
+        // forge-lint: disable-next-line(reentrancy-events)
         emit Claim(account, amount);
         i_airdropToken.safeTransfer(account, amount);
     }
